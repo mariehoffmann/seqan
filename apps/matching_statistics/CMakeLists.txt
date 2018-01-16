@@ -10,7 +10,8 @@ cmake_minimum_required (VERSION 3.0.0)
 project (seqan_apps_matching_statistics CXX)
 message (STATUS "Configuring apps/matching_statistics")
 # TODO: which version?
-set (SEQAN_APP_VERSION "2.3.0")
+set (SEQAN_APP_VERSION "2.0.8")
+set(CMAKE_CXX_STANDARD 14)
 
 # ----------------------------------------------------------------------------
 # Dependencies
@@ -18,20 +19,16 @@ set (SEQAN_APP_VERSION "2.3.0")
 
 # Search SeqAn and select dependencies.
 if (NOT "${SEQAN_BUILD_SYSTEM}" STREQUAL "DEVELOP")
+    find_package (Boost COMPONENTS filesystem REQUIRED)
     find_package (OpenMP)
     find_package (ZLIB)
     find_package (SeqAn CONFIG REQUIRED)
 endif ()
 
-if (NOT ZLIB_FOUND)
-  message (STATUS "  ZLIB not found: matching_statistics will not be built.")
+if (NOT Boost_FOUND OR NOT ZLIB_FOUND OR NOT OPENMP_FOUND)
+  message (STATUS "  Boost, ZLIB or OpenMP not found: matching_statistics will not be built.")
   return ()
-endif (NOT ZLIB_FOUND)
-
-# Enable C++11 in GCC and/or CLANG.
-#if (CMAKE_COMPILER_IS_GNUCXX OR COMPILER_IS_CLANG)
-#    add_definitions ("-std=c++0x")
-#endif (CMAKE_COMPILER_IS_GNUCXX OR COMPILER_IS_CLANG)
+endif ()
 
 # ----------------------------------------------------------------------------
 # Build Setup
@@ -39,29 +36,35 @@ endif (NOT ZLIB_FOUND)
 
 # Add include directories.
 include_directories (${SEQAN_INCLUDE_DIRS})
+include_directories (SYSTEM)
+include_directories (${Boost_INCLUDE_DIRS})
+
 
 # Add definitions set by find_package (SeqAn).
 add_definitions (${SEQAN_DEFINITIONS})
 
 # Add CXX flags found by find_package (SeqAn).
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
+#" -lboost-filesystem -lboost_system")
 
 # Add definitions set by the build system.
 add_definitions (-DSEQAN_APP_VERSION="${SEQAN_APP_VERSION}")
 add_definitions (-DSEQAN_REVISION="${SEQAN_REVISION}")
 add_definitions (-DSEQAN_DATE="${SEQAN_DATE}")
 
-# We define a library for the reusable parts of Mason.
+# Library for reusable parts of the matching statistics.
 add_library (ms_lib
-             unidirectional_matching_statistics.h)
+            main.cpp
+            unidirectional_matching_statistics.h)
 
-target_link_libraries (ms_lib ${SEQAN_LIBRARIES})
-
-# Tests for the library functionalities.
-add_executable (ms_tests matching_statistics_tests.cpp)
+# Add tests.
+add_executable (ms_tests matching_statistics_test.cpp)
+target_compile_options(ms_tests PUBLIC -std=c++14 -fpermissive -w -Wall)
+# maybe only needed when ms_lib needs the seqan libs
+set_target_properties(ms_tests PROPERTIES LINKER_LANGUAGE CXX)
 
 # Add dependencies found by find_package (SeqAn).
-target_link_libraries (ms_tests ${SEQAN_LIBRARIES} ms_lib)
+target_link_libraries (ms_tests LINK_PUBLIC ${SEQAN_LIBRARIES} ${Boost_LIBRARIES} ms_lib)
 
 # ----------------------------------------------------------------------------
 # Setup Common Tool Description for Generic Workflow Nodes
@@ -72,6 +75,9 @@ set (SEQAN_CTD_EXECUTABLES
     ${SEQAN_CTD_EXECUTABLES}
     ms_tests
     CACHE INTERNAL "")
+
+# Add CXX flags found by find_package (SeqAn).
+#set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
 
 # ----------------------------------------------------------------------------
 # Installation
@@ -91,8 +97,8 @@ install (FILES LICENSE
                README
                README.ms_tests
          DESTINATION ${SEQAN_PREFIX_SHARE_DOC})
-install (FILES example/adeno_virus.fa
-         DESTINATION ${SEQAN_PREFIX_SHARE_DOC}/example)
+#install (FILES example/adeno_virus.fa
+#         DESTINATION ${SEQAN_PREFIX_SHARE_DOC}/example)
 
 # ----------------------------------------------------------------------------
 # App Test

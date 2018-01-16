@@ -33,7 +33,7 @@
 // ============================================================================
 
 #include <chrono>
-#include <experimental/filesystem>
+//#include <experimental/filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -41,59 +41,66 @@
 #include <utility>
 #include <vector>
 
+#include <boost/filesystem.hpp>
+
 //#include <seqan3/alphabet/nucleotide/dna4.hpp>
 //#include <seqan3/range/view/to_char.hpp>
 
 #include <seqan/index.h>
-#include <unidirectional_matching_statistics.h>
+#include "unidirectional_matching_statistics.h"
+#include "parser.h"
+
 //#include <seqan3/indexes/matching_statistics/unidirectional_matching_statistics.hpp>
 
+/*
 #include <sdsl/config.hpp> // for cache_config
 #include <sdsl/construct.hpp>
 #include <sdsl/construct_bwt.hpp>
 #include <sdsl/suffix_trees.hpp>
-
+*/
 
 // forward declaration
 //template<typename T> LinkedList<T>::LinkedList()
 using namespace seqan;
 
-using container_t = typename std::vector<dna4>;
+using container_t = String<Dna>; // text = "ACTTTGACAGCT";;
 
-using test_msg_start
+#define msg_start "run test %s ..."
+#define msg_end " successful!\n"
+
 //template <typename container_type> struct seqan3::MS;
-namespace fs = std::experimental::filesystem;
+// c++17
+//namespace fs = std::experimental::filesystem;
 
 struct SetUp
 {
-    std::string s = "AACG";
-    std::string t = "AACT";
-    typedef sdsl::cst_sada<> cst_t;
+    container_t s = "AACG";
+    container_t t = "AACT";
+    //typedef sdsl::cst_sada<> cst_t;
 };
 
-void print_status(std::string function_name, bool start=true)
-{
-    if (start == true)
-        printf("run test %s ...", function_name);
-    else
-        printf(" successful!\n");
-}
-
 // unidirectional matching statistics: default constructor
-void default_construction)
+void default_construction()
 {
-    print_status("default_construction");
+    printf("run test %s ...", "default_construction");
     // default constructors
-    MS<container_t> ms{};
+    MS<> ms();
+
+    //MS<container_t> ms{};
     // copy constructor
-    MS<container_t> ms2{ms};
+    //MS<container_t> ms2{ms};
     // assignment construction
-    MS<container_t> ms3 = ms2;
-    print_status("default_construction", false);
+    //MS<container_t> ms3 = ms2;
+    printf(msg_end);
 }
 
-/*
 // unidirectional matching statistics: non-default constructors
+void construct_by_file(seqan::ArgumentParser::ParseResult parseRes)
+{
+
+
+}
+/*
 TEST_F(matching_statistics_test_fixture, construct_by_sequence)
 {
     // construct by sequence and create tmp files where sequences are written to.
@@ -150,8 +157,19 @@ TEST_F(matching_statistics_test_fixture, sdsl_bwt)
 }
 */
 
-int main(/*int argc, char** argv*/)
+int main(int argc, char** argv)
 {
     default_construction();
+
+    // Declare options variable and parse command line.
+    MSOptions options;
+    seqan::ArgumentParser::ParseResult parseRes = parseCommandLine(options, argc, argv);
+
+    // If parsing was not successful then exit with code 1 if there were errors.  Otherwise, exit with code 0 (e.g. help
+    // was printed).
+    if (parseRes != seqan::ArgumentParser::PARSE_OK)
+        return parseRes == seqan::ArgumentParser::PARSE_ERROR;
+
+    //construct_by_file(parseRes);
     return 0;
 }
